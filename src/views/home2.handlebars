@@ -1,0 +1,346 @@
+<script>
+    $(document).ready(async () => {
+        function setUpBackground() {
+            // Css cho background
+            $('.parentDisable').css({
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "background": "black",
+                "opacity": "0.8",
+                " z-index": "99",
+                "height": "100%",
+                "width": "100%"
+            })
+            // Ẩn background
+            $('.parentDisable').hide();
+
+            // Css cho background
+            $('.parentDisable2').css({
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "background": "black",
+                "opacity": "0.8",
+                " z-index": "105",
+                "height": "100%",
+                "width": "100%"
+            })
+            // Ẩn background
+            $('.parentDisable2').hide();
+        }
+
+        setUpBackground();
+
+        // Load All Users by Axios
+        await axios.get('/public-api/users')
+        .then(response => response.data.data)
+        .then(function (response) {
+            response.map((item) => {
+                // Thêm từng dòng vào table tương ứng với mỗi item trong Users
+                $('tbody').append(`
+                    <tr>
+                        <th scope="row" style="width:7%; text-align:center;">${item.id}</th>
+                        {{!-- <td style="width:15%;"><img src={{this.img}} class="img-thumbnail rounded" alt=""></td> --}}
+                        <td>${item.name}</td>
+                        <td>${item.gender}</td>
+                        <td>${item.email}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger detail" value=${item.id}><i class="fa fa-info-circle"></i></button>
+                            <button type="button" class="btn btn-danger edit" value=${encodeURIComponent(JSON.stringify(item))}><i class="fa fa-pencil" aria-hidden="true"></i></button>
+                            <button type="button" class="btn btn-danger del" value=${encodeURIComponent(JSON.stringify(item))}><i class="fa fa-trash" aria-hidden="true"></i></button>
+                        </td>
+                    </tr>
+                `);
+            })
+        })
+        .catch(function (error) {
+            console.log(error);
+        });
+
+        // Chuyển hướng trang khi click vào các nút tương tác
+        // Nút đăng xuất
+        $('.logout').click(() => {
+            window.location.href = window.location.href + 'logout';
+        })
+
+        // Nút detail
+        $('.detail').click(function(e) {
+            window.location.href = window.location.href + this.value;
+        })
+
+        // Nút Add
+        $('.add').click(() => {
+            window.location.href = window.location.href + 'add';
+        })
+
+        // Get Token
+        let getToken = 'Bearer ' + $('.takeToken').val();
+
+        editFunction();
+        delFunction();
+
+        function editFunction() {
+            // Nút Edit
+            $('.edit').click(function() {
+                // Hiện toast Form
+                $('.toast_edit').toast('show');
+                $('.toast_edit').toast({
+                    autohide: false
+                });
+
+                // Show background
+                $(".parentDisable").show();
+
+                // Lấy các giá trị của một user cụ thể
+                let getVal = JSON.parse(decodeURIComponent(this.value));
+
+                // Gán các giá trị vào input của toast form
+                $($('input')[0]).val(getVal.name);
+                $($('input')[1]).val(getVal.email);
+                $('select').val(getVal.gender);
+
+                // Nút đóng Toast Form
+                $('.btn-close').click(() => {
+                    $('.toast_edit').toast('hide');
+                    $(".parentDisable").hide();
+                })
+
+                // Toast Confirm
+                $('.btn_accept').click(function() {
+                    if(document.querySelector('form').checkValidity()) {
+                        // Hiện toast Form
+                        $('.toast_fix').toast('show');
+                        $('.toast_fix').toast({
+                            autohide: false
+                        });
+
+                        // Disable form
+                        $('fieldset').prop( "disabled", true );
+
+                        // Xoá hết các sự kiện click được khởi tạo trước đó
+                        $('.btn_goUpdate').off();
+
+                        // Send Request
+                        $('.btn_goUpdate').click((e) => {
+                            // Send request cho name,gender, email
+                            axios.put('/public-api/users/' + getVal.id, {
+                                name: $($('input')[0]).val(),
+                                gender: $('select').val(),
+                                email: $($('input')[1]).val()
+                            }, {
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'Authorization': getToken
+                                }
+                            })
+                            .then(async (res) => {
+                                // Kiểm tra nếu như có lỗi
+                                let ifError = true;
+
+                                // Nếu có gửi file thì send thêm request sửa file img nữa
+                                if(document.getElementById("formFile").files[0]) {
+                                    await axios.put('/public-api/users/' + getVal.id, {
+                                            image: document.getElementById("formFile").files[0]
+                                        }, {
+                                            headers: {
+                                                'Content-Type': 'multipart/form-data',
+                                                'Authorization': getToken
+                                            }
+                                    })
+                                    .catch(function (error) {
+                                        // Trường hợp không đúng định dạng
+                                        ifError = false;
+                                        toastr.error('Only accept .jpeg or .png!');
+                                    });
+                                }
+
+                                // Nếu thành công thì lưu một session để hiện toast bên Home
+                                if(res.status == 200 && ifError) {
+                                    // Set session
+                                    sessionStorage.setItem('toastFix', true);
+
+                                    // Chuyển về trang Home
+                                    window.location = '/';
+                                }
+                            })
+                            .catch(function (error) {
+                                toastr.error('You are not allowed to do that!');
+                            });
+                        })
+                    } else toastr.error('Vui lòng điền đủ các thông tin cần thiết hoặc do emai bạn nhập chưa đúng!');
+                })
+
+                 // Nút đóng Toast Confirm
+                $('.btn_closeUpdate').click(() => {
+                    $('.toast_fix').toast('hide');
+                    $('fieldset').prop( "disabled", false );
+                })
+            })
+        }
+
+        function delFunction() {
+            let getVal
+
+            // Nút Xoá
+            $('.del').click(function() {
+                // Hiện toast Form
+                $('.toast_del').toast('show');
+                $('.toast_del').toast({
+                    autohide: false
+                });
+
+                // Take Obj
+                getVal = JSON.parse(decodeURIComponent(this.value));
+
+                // Set Text
+                $('.text-toast').text(getVal.name);
+
+                // Show background
+                $(".parentDisable").show();
+            })
+
+            // Nút đóng Toast Delete
+            $('.btn_closeDel').click(() => {
+                $('.toast_edit').toast('hide');
+                $(".parentDisable").hide();
+            })
+
+            // Nút Take Action Xoá
+            $('.btn_takeAction').click(() => {
+                // Send Del Request By Axios
+                axios.delete('/public-api/users/' + getVal.id,{
+                    data: {
+                        img: getVal.img
+                    },
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': getToken
+                    }
+                })
+                .then((res) => {
+                    // If Mess 200
+                    if(res.status == 200) {
+                        sessionStorage.setItem("toastRemove", true);
+                        window.location = '/';
+                    }
+                })
+                .catch(function (error) {
+                    toastr.error('You are not allowed to do that!');
+                });
+            })
+        }
+
+        // Toast
+        if(sessionStorage.getItem('toastAdd')) {
+            toastr.success('Success to add user!');
+            sessionStorage.clear();
+        }
+
+        if(sessionStorage.getItem('toastFix')) {
+            toastr.success('Success to update user!');
+            sessionStorage.clear();
+        }
+
+        if(sessionStorage.getItem('toastRemove')) {
+            toastr.success('Success to delete user!');
+            sessionStorage.clear();
+        }
+    })
+</script>
+<div class="container">
+    <h3 class="mt-3 mb-3">Danh sách sản phẩm</h3>
+    <button type="button" class="btn btn-danger position-absolute top-0 end-0 m-5 logout">Đăng xuất</button>
+    <button type="button" class="btn btn-danger mb-3 add">Thêm sản phẩm</button>
+    <p>Chọn một sản phẩm cụ thể để xem chi tiết</p>
+    <table class="table table-hover table-image">
+        <thead>
+            <tr>
+                <th scope="col" style="text-align:center">ID</th>
+                <th scope="col">Họ và tên</th>
+                <th scope="col">Giới Tính</th>
+                <th scope="col">Email</th>
+                <th scope="col">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- background -->
+<div class="parentDisable"></div>
+<div class="parentDisable2"></div>
+
+<!-- Toast Form -->
+<div class="position-absolute top-50 start-50 translate-middle" style="z-index: 11;">
+    <div class="toast hide toast_edit" style="width: 500px;" data-bs-autohide="false">
+        <div class="container rounded border border-light p-5 bg-body" aria-disabled="true">
+            <fieldset>
+                <button type="button" class="btn-close position-fixed top-0 end-0 p-3 m-3"></button>
+                <h3 class="text-warning mb-3">Update User</h3>
+                <form action="#" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" placeholder="Input User Name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Gender</label>
+                        <select class="form-select" aria-label="Default select example" required>
+                            <option selected value="">Choose your gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" placeholder="Input User Email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Image of User</label>
+                        <input class="form-control" type="file" id="formFile" name="image">
+                        <div class="form-text">
+                            If the box is left blank, the image will remain the same.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning btn_accept">Accept Update</button>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+</div>
+
+<div class="position-absolute top-50 start-50 translate-middle" style="z-index: 11;">
+    <div class="toast hide toast_fix bg-light" style="width: 400px;" data-bs-autohide="false" >
+        <div class="toast-header">
+            <h5 class="text-danger">Confirm Update</h5>
+        </div>
+        <div class="toast-body">
+            Are you sure you want to update this user?
+            <div class="mt-2 pt-2 border-top mb-5">
+                <div class="float-end">
+                    <button type="button" class="btn btn-danger btn-sm btn_goUpdate my-3">Confirm</button>
+                    <button type="button" class="btn btn-secondary btn-sm btn_closeUpdate my-3" data-bs-dismiss="toast">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-absolute top-50 start-50 translate-middle" style="z-index: 11;">
+    <div class="toast hide toast_del bg-light" style="width: 500px;" data-bs-autohide="false" >
+        <div class="toast-header">
+            <h5 class="text-danger">Delete User</h5>
+        </div>
+        <div class="toast-body">
+            Are you sure you want to delete <span class="text-toast" style="font-weight: bold;"></span>?
+            <div class="mt-2 pt-2 border-top mb-5">
+                <div class="float-end">
+                    <button type="button" class="btn btn-danger btn-sm btn_takeAction my-3">Take action</button>
+                    <button type="button" class="btn btn-secondary btn-sm btn_closeDel my-3" data-bs-dismiss="toast">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<input class="takeToken" value={{token}} hidden></input>

@@ -1,0 +1,74 @@
+<script>
+    $(document).ready(() => {
+        // Nhận event click button
+        $('button').click((e) => {
+            // Get Token
+            let getToken = 'Bearer ' + $('.takeToken').val();
+
+            if(document.querySelector('form').checkValidity()) {
+                // Reject chuyển trang của form
+                e.preventDefault();
+
+                // Take all input
+                let getInput = $('input');
+
+                // Gửi POST bằng Axios
+                axios.post('/public-api/users', {
+                    name: $(getInput[0]).val(),
+                    gender: $('select').val(),
+                    email: $(getInput[1]).val(),
+                    image: document.getElementById("formFile").files[0]
+                }, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': getToken
+                    }
+                }).then((res) => {
+                    // Nếu thành công thì lưu một session để hiện toast bên Home
+                    if(res.status == 200) {
+                        // Set session
+                        sessionStorage.setItem('toastAdd', true);
+
+                        // Chuyển về trang Home
+                        window.location = '/';
+                    } else {
+                        // Trường hợp không đúng định dạng
+                        toastr.error('Only accept .jpeg or .png!');
+                    }
+                })
+                .catch(function (error) {
+                    // Trường hợp không đúng định dạng
+                    toastr.error('Only accept .jpeg or .png or You are not allowed to create user!');
+                });
+            } else toastr.error('Vui lòng điền đủ các thông tin cần thiết hoặc do emai bạn nhập chưa đúng!');
+        })
+    })
+</script>
+<div class="container rounded-3 border border-light p-5 mt-5 shadow-lg p-3 mb-5 bg-body" style="width:40%;">
+    <p class="text-primary" onclick="history.back()" style="cursor: pointer;">Quay lại</p>
+    <h3 class="text-success mb-4">Add New User</h3>
+    <form action="#"  method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-control" placeholder="Input User Name" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Gender</label>
+            <select class="form-select" aria-label="Default select example" required>
+                <option selected value="">Choose your gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" placeholder="Input User Email" name="email" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Image of User</label>
+            <input class="form-control" type="file" id="formFile" name="image" required>
+        </div>
+        <button type="submit" class="btn btn-success">Add New User</button>
+    </form>
+</div>
+<input class="takeToken" value={{token}} hidden></input>
