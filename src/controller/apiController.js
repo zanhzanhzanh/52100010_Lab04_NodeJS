@@ -4,7 +4,7 @@ const fs = require('fs');
 // Data
 let users = [
     { id: 1, name: 'Alex Standred', gender: 'Male', email: 'alex@gmail.com', img: 'img/xs.jpg', status: 'Active'},
-    { id: 2, name: 'Lucy Kyama', gender: 'Female', email: 'lucy@gmail.com', img: 'img/12.jpg', status: 'Active'},
+    { id: 2, name: 'Lucy Kyama', gender: 'Female', email: 'lucy@gmail.com', img: 'img/tt.jpg', status: 'Active'},
     { id: 3, name: 'Kevin Monola', gender: 'Male', email: 'kevin@gmail.com', img: 'img/mac.jpg', status: 'Active'},
     { id: 4, name: 'Kevin Monola', gender: 'Male', email: 'kevin@gmail.com', img: 'img/4.jpg', status: 'Active'},
     { id: 5, name: 'Kevin Monola', gender: 'Male', email: 'kevin@gmail.com', img: 'img/5.jpg', status: 'Active'},

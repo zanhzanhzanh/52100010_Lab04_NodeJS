@@ -5,12 +5,8 @@ const express = require('express');
 let router = express.Router();
 
 const getApiRouter = (app, upload) => {
-    // GET Users by size
-    // router.get('/:page', getAllModule.getPage);
-
     // GET All User
     router.get('/', getAllModule.getAllUsers);
-
 
     // GET Specific User
     router.get('/:id(\\d+)', getAuth.verifyTokenAndAdmin, getAllModule.getOneUser);
